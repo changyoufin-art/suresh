@@ -1,110 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Catalog App</title>
-  <style>
-    body { font-family: Arial; margin: 20px; }
-    .product { border: 1px solid #ddd; padding: 10px; margin: 10px; border-radius: 8px; }
-    .cart-icon { position: fixed; top: 10px; right: 10px; cursor: pointer; font-size: 18px; background: #28a745; color: white; padding: 6px 12px; border-radius: 8px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Catalog</title>
+<style>
+/* Basic styling */
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
+.header { background:#ff6b6b; color:white; padding:20px; text-align:center; }
+.search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
+.products-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:15px; padding:20px; }
+.product-card { background:white; padding:15px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
+.product-image { font-size:50px; text-align:center; margin-bottom:10px; }
+.product-name { font-weight:bold; font-size:16px; margin-bottom:5px; }
+.product-description { font-size:14px; margin-bottom:5px; }
+.product-weight { font-size:14px; color:#555; margin-bottom:5px; }
+.product-price { font-weight:bold; color:#27ae60; margin-bottom:5px; }
+.product-rating { color:#f39c12; margin-bottom:5px; }
+.add-to-cart { background:#3498db; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; }
+.cart-page { display:none; padding:20px; }
+.cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; }
+.cart-item-name { font-weight:bold; }
+.cart-item-qty { width:50px; }
+.cart-buttons { display:flex; gap:10px; margin-top:10px; }
+.cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
+</style>
 </head>
 <body>
 
-  <h2>Product Catalog</h2>
-  <div id="products"></div>
+<div class="header">
+  <h1>🛍️ Product Catalog</h1>
+  <input type="text" id="searchInput" class="search-bar" placeholder="Search products...">
+</div>
 
-  <div class="cart-icon" onclick="showCart()">🛒 Cart (<span id="cartCount">0</span>)</div>
-
-  <div id="cartPage" style="display:none;">
-    <h2>Your Cart</h2>
-    <div id="cartItems"></div>
-    <p><b>Total: Rs.<span id="totalAmount">0</span></b></p>
-    <h3>Customer Details</h3>
-    <input id="custName" placeholder="Name"><br><br>
-    <input id="custPhone" placeholder="Phone"><br><br>
-    <textarea id="custAddress" placeholder="Address"></textarea><br><br>
-    <button onclick="confirmOrder()">Confirm Order</button>
-    <button onclick="hideCart()">Continue Shopping</button>
+<div id="catalogPage">
+  <div class="products-grid" id="productsGrid">
+    Loading products...
   </div>
+</div>
 
-  <script>
-    const SCRIPT_URL = "YOUR_SCRIPT_URL";
-    let cart = [];
+<div id="cartPage" class="cart-page">
+  <h2>🛒 Your Cart</h2>
+  <div id="cartItems"></div>
+  <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
+  <div style="margin-top:15px;">
+    <input type="text" id="customerName" placeholder="Your Name" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
+    <input type="text" id="customerPhone" placeholder="Phone Number" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
+    <input type="text" id="customerAddress" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
+  </div>
+  <div class="cart-buttons">
+    <button id="confirmOrderBtn" style="background:#e67e22;color:white;">Confirm Order</button>
+    <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue</button>
+  </div>
+</div>
 
-    // Load Products
-    fetch(`${SCRIPT_URL}?action=getProducts`)
-      .then(res => res.json())
-      .then(data => {
-        const container = document.getElementById("products");
-        data.forEach(p => {
-          const div = document.createElement("div");
-          div.className = "product";
-          div.innerHTML = `
-            <img src="${p.image}" width="100"><br>
-            <b>${p.name}</b><br>
-            ${p.description} (${p.weight})<br>
-            Rs.${p.price}<br>
-            Qty: <input type="number" id="qty-${p.id}" value="1" min="1" style="width:50px"><br><br>
-            <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})">Add to Cart</button>
-          `;
-          container.appendChild(div);
-        });
-      })
-      .catch(err => {
-        alert("Failed to load products: " + err);
-      });
+<script>
+let products = [];
+let cart = [];
+let searchTerm = '';
 
-    function addToCart(id, name, price) {
-      const qty = parseInt(document.getElementById("qty-" + id).value);
-      cart.push({ id, name, price, qty });
-      document.getElementById("cartCount").innerText = cart.length;
-      alert(`${name} added to cart!`);
-    }
+// Fetch products from Google Sheet
+fetch('PRODUCTS_WEB_APP_URL') // replace with your Products Web App URL
+  .then(res => res.json())
+  .then(data => {
+    products = data;
+    renderProducts();
+  })
+  .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
 
-    function showCart() {
-      document.getElementById("products").style.display = "none";
-      document.getElementById("cartPage").style.display = "block";
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value.toLowerCase();
+  renderProducts();
+});
+
+function renderProducts() {
+  const grid = document.getElementById('productsGrid');
+  let filtered = products.filter(p => 
+    p.Name.toLowerCase().includes(searchTerm) || 
+    p.Description.toLowerCase().includes(searchTerm)
+  );
+
+  if(filtered.length===0){
+    grid.innerHTML = 'No products found';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(p=>`
+    <div class="product-card">
+      <div class="product-image">${p.Image}</div>
+      <div class="product-name">${p.Name}</div>
+      <div class="product-description">${p.Description}</div>
+      <div class="product-weight">Weight: ${p.Weight}</div>
+      <div class="product-price">$${p.Price}</div>
+      <div class="product-rating">Rating: ${p.Rating} ⭐</div>
+      <div>
+        Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:50px;">
+        <button class="add-to-cart" onclick="addToCart(${p.ID})">Add</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addToCart(id){
+  const product = products.find(p=>p.ID==id);
+  const qty = parseInt(document.getElementById(`qty-${id}`).value);
+  if(!qty || qty<1) return;
+
+  const existing = cart.find(item=>item.ID==id);
+  if(existing) existing.qty += qty;
+  else cart.push({...product, qty});
+  
+  showCartPage();
+}
+
+function showCartPage(){
+  document.getElementById('catalogPage').style.display='none';
+  document.getElementById('cartPage').style.display='block';
+  renderCart();
+}
+
+function renderCart(){
+  const container = document.getElementById('cartItems');
+  container.innerHTML = '';
+  let total = 0;
+
+  cart.forEach(item=>{
+    total += parseFloat(item.Price)*item.qty;
+    container.innerHTML += `
+      <div class="cart-item">
+        <div class="cart-item-name">${item.Name}</div>
+        <div>Qty: ${item.qty}</div>
+        <div>Price: $${item.Price}</div>
+      </div>
+    `;
+  });
+
+  document.getElementById('cartTotal').innerText = total.toFixed(2);
+}
+
+// Continue Shopping
+document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
+
+// Confirm Order
+document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
+  if(cart.length===0){ alert('Cart is empty'); return; }
+
+  const customerName = document.getElementById('customerName').value || 'N/A';
+  const customerPhone = document.getElementById('customerPhone').value || 'N/A';
+  const customerAddress = document.getElementById('customerAddress').value || 'N/A';
+
+  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
+  const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
+
+  const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
+
+  fetch('ORDERS_WEB_APP_URL', { // replace with Orders Web App URL
+    method:'POST',
+    body: JSON.stringify(orderData)
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.status==='success'){
+      alert('✅ Order confirmed!');
+      cart=[];
       renderCart();
+      document.getElementById('cartPage').style.display='none';
+      document.getElementById('catalogPage').style.display='block';
+    } else {
+      alert('Failed to send order');
     }
-
-    function hideCart() {
-      document.getElementById("products").style.display = "block";
-      document.getElementById("cartPage").style.display = "none";
-    }
-
-    function renderCart() {
-      const cartItems = document.getElementById("cartItems");
-      cartItems.innerHTML = "";
-      let total = 0;
-      cart.forEach(c => {
-        total += c.price * c.qty;
-        cartItems.innerHTML += `<p>${c.name} x ${c.qty} = Rs.${c.price * c.qty}</p>`;
-      });
-      document.getElementById("totalAmount").innerText = total;
-    }
-
-    function confirmOrder() {
-      const customerName = document.getElementById("custName").value;
-      const customerPhone = document.getElementById("custPhone").value;
-      const customerAddress = document.getElementById("custAddress").value;
-      const products = JSON.stringify(cart);
-      const total = document.getElementById("totalAmount").innerText;
-
-      fetch(`${SCRIPT_URL}?action=submitOrder&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&customerAddress=${encodeURIComponent(customerAddress)}&products=${encodeURIComponent(products)}&total=${encodeURIComponent(total)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === "success") {
-            alert("✅ " + data.message);
-            cart = [];
-            document.getElementById("cartCount").innerText = 0;
-            hideCart();
-          } else {
-            alert("❌ Order failed: " + data.message);
-          }
-        })
-        .catch(err => alert("Error: " + err));
-    }
-  </script>
+  })
+  .catch(err=>{
+    console.error(err);
+    alert('Failed to send order. Check internet.');
+  });
+});
+</script>
 </body>
 </html>
