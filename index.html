@@ -53,7 +53,7 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
   <div class="cart-buttons">
     <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
-    <button id="clearCartBtn" style="background:#e74c3c;color:white;">Clear Cart</button>
+    <button id="confirmOrderBtn" style="background:#27ae60;color:white;">Confirm Order</button>
   </div>
 </div>
 
@@ -158,9 +158,40 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
+// Continue Shopping
 document.getElementById('continueShoppingBtn').addEventListener('click', ()=> showPage('catalog'));
-document.getElementById('clearCartBtn').addEventListener('click', ()=>{
-  cart = []; renderCart(); showPage('catalog');
+
+// Confirm Order
+document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
+  if(cart.length===0){ alert('Cart is empty'); return; }
+
+  // Optional: you can ask for customer info via prompt
+  const customerName = prompt('Enter your name') || 'N/A';
+  const customerPhone = prompt('Enter phone number') || 'N/A';
+  const customerAddress = prompt('Enter delivery address') || 'N/A';
+
+  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
+  const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
+
+  const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
+
+  fetch(ORDERS_WEB_APP_URL, {
+    method:'POST',
+    body: JSON.stringify(orderData)
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.status==='success'){
+      alert('✅ Order confirmed!');
+      cart=[]; renderCart(); showPage('catalog'); fetchOrders();
+    } else {
+      alert('Failed to send order');
+    }
+  })
+  .catch(err=>{
+    console.error(err);
+    alert('Failed to send order. Check internet.');
+  });
 });
 
 // =================== FETCH ORDERS ===================
@@ -182,10 +213,7 @@ function fetchOrders(){
         </div>
       `).join('');
     })
-    .catch(err => {
-      console.error(err);
-      container.innerHTML = 'Failed to load orders.';
-    });
+    .catch(err => { console.error(err); container.innerHTML='Failed to load orders.'; });
 }
 </script>
 
