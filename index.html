@@ -7,11 +7,11 @@
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
 .header { background:#ff6b6b; color:white; padding:20px; text-align:center; position:relative; }
-.search-bar { width:80%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
-.cart-icon { position:absolute; right:20px; top:25px; font-size:24px; cursor:pointer; }
+.search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
+.cart-icon { position:absolute; right:20px; top:20px; font-size:20px; cursor:pointer; }
 .products-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:15px; padding:20px; }
 .product-card { background:white; padding:15px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
-.product-image { font-size:50px; text-align:center; margin-bottom:10px; }
+.product-image img { width:100%; max-height:150px; object-fit:contain; margin-bottom:10px; }
 .product-name { font-weight:bold; font-size:16px; margin-bottom:5px; }
 .product-description { font-size:14px; margin-bottom:5px; }
 .product-weight { font-size:14px; color:#555; margin-bottom:5px; }
@@ -21,7 +21,6 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 .cart-page { display:none; padding:20px; }
 .cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; }
 .cart-item-name { font-weight:bold; }
-.cart-item-qty { width:50px; }
 .cart-buttons { display:flex; gap:10px; margin-top:10px; }
 .cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
 </style>
@@ -31,19 +30,17 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 <div class="header">
   <h1>🛍️ Product Catalog</h1>
   <input type="text" id="searchInput" class="search-bar" placeholder="Search products...">
-  <div class="cart-icon" id="cartIcon">🛒</div>
+  <div class="cart-icon" onclick="showCartPage()">🛒 (<span id="cartCount">0</span>)</div>
 </div>
 
 <div id="catalogPage">
-  <div class="products-grid" id="productsGrid">
-    Loading products...
-  </div>
+  <div class="products-grid" id="productsGrid">Loading products...</div>
 </div>
 
 <div id="cartPage" class="cart-page">
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
-  <div><strong>Total: Rs. <span id="cartTotal">0.00</span></strong></div>
+  <div><strong>Total: ₹<span id="cartTotal">0.00</span></strong></div>
   <div style="margin-top:15px;">
     <input type="text" id="customerName" placeholder="Your Name" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
     <input type="text" id="customerPhone" placeholder="Phone Number" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
@@ -51,22 +48,19 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   </div>
   <div class="cart-buttons">
     <button id="confirmOrderBtn" style="background:#e67e22;color:white;">Confirm Order</button>
-    <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
+    <button onclick="continueShopping()" style="background:#95a5a6;color:white;">Continue Shopping</button>
   </div>
 </div>
 
 <script>
+const WEB_APP_URL = "YOUR_WEB_APP_URL"; // Replace with your Apps Script URL
 let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Fetch products from Google Sheet Web App
-fetch('PRODUCTS_WEB_APP_URL') // replace with your Products Web App URL
+fetch(WEB_APP_URL) // GET products
   .then(res => res.json())
-  .then(data => {
-    products = data;
-    renderProducts();
-  })
+  .then(data => { products = data; renderProducts(); })
   .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
 
 document.getElementById('searchInput').addEventListener('input', e => {
@@ -77,8 +71,8 @@ document.getElementById('searchInput').addEventListener('input', e => {
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
   let filtered = products.filter(p => 
-    p.Name.toLowerCase().includes(searchTerm) || 
-    p.Description.toLowerCase().includes(searchTerm)
+    (p.Name || '').toLowerCase().includes(searchTerm) || 
+    (p.Description || '').toLowerCase().includes(searchTerm)
   );
 
   if(filtered.length===0){
@@ -88,11 +82,11 @@ function renderProducts() {
 
   grid.innerHTML = filtered.map(p=>`
     <div class="product-card">
-      <div class="product-image"><img src="${p.Image}" width="150"></div>
+      <div class="product-image"><img src="${p.Image}" alt="${p.Name}"></div>
       <div class="product-name">${p.Name}</div>
       <div class="product-description">${p.Description}</div>
       <div class="product-weight">Weight: ${p.Weight}</div>
-      <div class="product-price">Rs. ${p.Price}</div>
+      <div class="product-price">₹${p.Price}</div>
       <div class="product-rating">Rating: ${p.Rating} ⭐</div>
       <div>
         Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:50px;">
@@ -102,7 +96,6 @@ function renderProducts() {
   `).join('');
 }
 
-// Add product to cart but stay on product page
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
@@ -111,16 +104,25 @@ function addToCart(id){
   const existing = cart.find(item=>item.ID==id);
   if(existing) existing.qty += qty;
   else cart.push({...product, qty});
-
-  alert(`Added ${qty} x ${product.Name} to cart`);
+  
+  updateCartCount();
+  alert(product.Name + " added to cart!");
 }
 
-// Show cart page when clicking cart icon
-document.getElementById('cartIcon').addEventListener('click', ()=> {
+function updateCartCount(){
+  document.getElementById('cartCount').innerText = cart.reduce((sum,i)=>sum+i.qty,0);
+}
+
+function showCartPage(){
   document.getElementById('catalogPage').style.display='none';
   document.getElementById('cartPage').style.display='block';
   renderCart();
-});
+}
+
+function continueShopping(){
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+}
 
 function renderCart(){
   const container = document.getElementById('cartItems');
@@ -133,7 +135,7 @@ function renderCart(){
       <div class="cart-item">
         <div class="cart-item-name">${item.Name}</div>
         <div>Qty: ${item.qty}</div>
-        <div>Price: Rs. ${item.Price}</div>
+        <div>Price: ₹${item.Price}</div>
       </div>
     `;
   });
@@ -141,13 +143,7 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// Continue Shopping
-document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
-  document.getElementById('cartPage').style.display='none';
-  document.getElementById('catalogPage').style.display='block';
-});
-
-// Confirm Order → send to Google Sheet
+// Confirm Order
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
 
@@ -155,31 +151,30 @@ document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   const customerPhone = document.getElementById('customerPhone').value || 'N/A';
   const customerAddress = document.getElementById('customerAddress').value || 'N/A';
 
-  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = Rs.${i.Price}`).join('; ');
+  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = ₹${i.Price}`).join('; ');
   const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
 
   const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
 
-  // Send to Google Sheet Web App
-  fetch('ORDERS_WEB_APP_URL', {  // replace with your Orders Web App URL
+  fetch(WEB_APP_URL, {
     method:'POST',
     body: JSON.stringify(orderData)
   })
   .then(res=>res.json())
   .then(data=>{
-    if(data.status === 'success'){
+    if(data.status==='success'){
       alert('✅ Order confirmed!');
-      cart = [];
+      cart=[];
+      updateCartCount();
       renderCart();
-      document.getElementById('cartPage').style.display='none';
-      document.getElementById('catalogPage').style.display='block';
+      continueShopping();
     } else {
-      alert('❌ Failed to send order. Please check your internet.');
+      alert('⚠️ Failed to confirm order. Try again.');
     }
   })
   .catch(err=>{
     console.error(err);
-    alert('❌ Failed to send order. Please check your internet.');
+    alert('⚠️ Could not connect to server.');
   });
 });
 </script>
