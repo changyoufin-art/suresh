@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Product Catalog</title>
 <style>
-/* Basic styling */
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
 .header { background:#ff6b6b; color:white; padding:20px; text-align:center; }
 .search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
@@ -60,8 +59,8 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Fetch products from Google Sheet
-fetch('https://script.google.com/macros/s/AKfycbx5Jdv9aQSylwdU4UyAnTTbQ57HojT2Y2OUGB8nTMqduokKxKbqGYkDtg0iKIRPiPoOEg/exec')
+// Fetch products from your new Web App
+fetch('https://script.google.com/macros/s/AKfycbyOpgzTGkf2JZKtU4LDFNZTMt0BDF4Q08mCHm6ThC1a4_0h9FBJ1PovOJ4hE4iZbRuJyQ/exec')
   .then(res => res.json())
   .then(data => {
     products = data;
