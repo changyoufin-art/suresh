@@ -5,50 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Product Catalog</title>
 <style>
+/* Basic styling */
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
-.header { background:#ff6b6b; color:white; padding:20px; text-align:center; position:relative; }
+.header { background:#ff6b6b; color:white; padding:20px; text-align:center; }
 .search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
-.cart-icon { position:absolute; right:20px; top:20px; cursor:pointer; font-size:22px; }
 .products-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:15px; padding:20px; }
 .product-card { background:white; padding:15px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
-.product-image img { max-width:100%; height:auto; border-radius:8px; }
-.product-name { font-weight:bold; font-size:16px; margin-top:10px; }
+.product-image img { max-width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px; }
+.product-name { font-weight:bold; font-size:16px; margin-bottom:5px; }
 .product-description { font-size:14px; margin-bottom:5px; }
 .product-weight { font-size:14px; color:#555; margin-bottom:5px; }
 .product-price { font-weight:bold; color:#27ae60; margin-bottom:5px; }
 .product-rating { color:#f39c12; margin-bottom:5px; }
-.add-to-cart { background:#3498db; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; margin-top:5px; }
+.add-to-cart { background:#3498db; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; }
 .cart-page { display:none; padding:20px; }
-.cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; }
+.cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; display:flex; justify-content: space-between; align-items:center; }
 .cart-item-name { font-weight:bold; }
+.cart-item-qty { width:50px; }
 .cart-buttons { display:flex; gap:10px; margin-top:10px; }
 .cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
+.remove-btn { background:#e74c3c; color:white; border:none; padding:5px 8px; border-radius:5px; cursor:pointer; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>🛍️ Product Catalog</h1>
-  <span class="cart-icon" onclick="showCartPage()">🛒 (<span id="cartCount">0</span>)</span>
   <input type="text" id="searchInput" class="search-bar" placeholder="Search products...">
 </div>
 
 <div id="catalogPage">
-  <div class="products-grid" id="productsGrid">Loading products...</div>
+  <div class="products-grid" id="productsGrid">
+    Loading products...
+  </div>
 </div>
 
 <div id="cartPage" class="cart-page">
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
-  <div><strong>Total: ₹<span id="cartTotal">0.00</span></strong></div>
+  <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
   <div style="margin-top:15px;">
-    <input type="text" id="customerName" placeholder="Your Name" style="width:100%; padding:10px; margin-bottom:10px;">
-    <input type="text" id="customerPhone" placeholder="Phone Number" style="width:100%; padding:10px; margin-bottom:10px;">
-    <input type="text" id="customerAddress" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:10px;">
+    <input type="text" id="customerName" placeholder="Your Name" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
+    <input type="text" id="customerPhone" placeholder="Phone Number" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
+    <input type="text" id="customerAddress" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
   </div>
   <div class="cart-buttons">
     <button id="confirmOrderBtn" style="background:#e67e22;color:white;">Confirm Order</button>
-    <button onclick="continueShopping()" style="background:#95a5a6;color:white;">Continue Shopping</button>
+    <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue</button>
   </div>
 </div>
 
@@ -57,13 +60,14 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-const SCRIPT_URL = "YOUR_SCRIPT_URL"; // replace with your Web App URL
-
-// ✅ Load products
-fetch(SCRIPT_URL + "?action=getProducts")
+// Fetch products from Google Sheet
+fetch('https://script.google.com/macros/s/AKfycbx5Jdv9aQSylwdU4UyAnTTbQ57HojT2Y2OUGB8nTMqduokKxKbqGYkDtg0iKIRPiPoOEg/exec')
   .then(res => res.json())
-  .then(data => { products = data; renderProducts(); })
-  .catch(err => document.getElementById('productsGrid').innerHTML='❌ Failed to load products');
+  .then(data => {
+    products = data;
+    renderProducts();
+  })
+  .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
 
 document.getElementById('searchInput').addEventListener('input', e => {
   searchTerm = e.target.value.toLowerCase();
@@ -72,22 +76,27 @@ document.getElementById('searchInput').addEventListener('input', e => {
 
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
-  let filtered = products.filter(p =>
-    p.Name.toLowerCase().includes(searchTerm) ||
+  let filtered = products.filter(p => 
+    p.Name.toLowerCase().includes(searchTerm) || 
     p.Description.toLowerCase().includes(searchTerm)
   );
-  if(filtered.length===0){ grid.innerHTML='No products found'; return; }
+
+  if(filtered.length===0){
+    grid.innerHTML = 'No products found';
+    return;
+  }
+
   grid.innerHTML = filtered.map(p=>`
     <div class="product-card">
       <div class="product-image"><img src="${p.Image}" alt="${p.Name}"></div>
       <div class="product-name">${p.Name}</div>
       <div class="product-description">${p.Description}</div>
       <div class="product-weight">Weight: ${p.Weight}</div>
-      <div class="product-price">₹${p.Price}</div>
-      <div class="product-rating">⭐ ${p.Rating}</div>
+      <div class="product-price">$${p.Price}</div>
+      <div class="product-rating">Rating: ${p.Rating} ⭐</div>
       <div>
         Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:50px;">
-        <button class="add-to-cart" onclick="addToCart(${p.ID})">Add to Cart</button>
+        <button class="add-to-cart" onclick="addToCart(${p.ID})">Add</button>
       </div>
     </div>
   `).join('');
@@ -97,14 +106,12 @@ function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
   if(!qty || qty<1) return;
+
   const existing = cart.find(item=>item.ID==id);
   if(existing) existing.qty += qty;
   else cart.push({...product, qty});
-  updateCartCount();
-}
-
-function updateCartCount(){
-  document.getElementById('cartCount').innerText = cart.reduce((sum,i)=>sum+i.qty,0);
+  
+  showCartPage();
 }
 
 function showCartPage(){
@@ -113,51 +120,76 @@ function showCartPage(){
   renderCart();
 }
 
-function continueShopping(){
-  document.getElementById('cartPage').style.display='none';
-  document.getElementById('catalogPage').style.display='block';
-}
-
 function renderCart(){
   const container = document.getElementById('cartItems');
-  container.innerHTML='';
-  let total=0;
+  container.innerHTML = '';
+  let total = 0;
+
   cart.forEach(item=>{
-    total+= parseFloat(item.Price)*item.qty;
-    container.innerHTML+=`
+    total += parseFloat(item.Price)*item.qty;
+    container.innerHTML += `
       <div class="cart-item">
-        <div class="cart-item-name">${item.Name}</div>
-        <div>Qty: ${item.qty}</div>
-        <div>Price: ₹${item.Price}</div>
-      </div>`;
+        <div>
+          <div class="cart-item-name">${item.Name}</div>
+          <div>Qty: ${item.qty}</div>
+          <div>Price: $${item.Price}</div>
+        </div>
+        <button class="remove-btn" onclick="removeFromCart(${item.ID})">Remove</button>
+      </div>
+    `;
   });
-  document.getElementById('cartTotal').innerText= total.toFixed(2);
+
+  document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// ✅ Confirm Order
+function removeFromCart(id){
+  cart = cart.filter(item=>item.ID !== id);
+  renderCart();
+}
+
+// Continue Shopping
+document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
+
+// Confirm Order
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
-  const customerName=document.getElementById('customerName').value||'N/A';
-  const customerPhone=document.getElementById('customerPhone').value||'N/A';
-  const customerAddress=document.getElementById('customerAddress').value||'N/A';
-  const productsStr=cart.map(i=>`${i.Name} x ${i.qty} = ₹${i.Price}`).join('; ');
-  const total=cart.reduce((sum,i)=>sum+parseFloat(i.Price)*i.qty,0).toFixed(2);
 
-  const url=SCRIPT_URL+`?action=submitOrder&customerName=${encodeURIComponent(customerName)}&customerPhone=${encodeURIComponent(customerPhone)}&customerAddress=${encodeURIComponent(customerAddress)}&products=${encodeURIComponent(productsStr)}&total=${encodeURIComponent(total)}`;
+  const customerName = document.getElementById('customerName').value || 'N/A';
+  const customerPhone = document.getElementById('customerPhone').value || 'N/A';
+  const customerAddress = document.getElementById('customerAddress').value || 'N/A';
 
-  fetch(url)
-    .then(res=>res.json())
-    .then(data=>{
-      if(data.status==='success'){
-        alert('✅ Order confirmed!');
-        cart=[];
-        updateCartCount();
-        continueShopping();
-      } else {
-        alert('❌ Failed to confirm order');
-      }
-    })
-    .catch(err=>alert('❌ Failed to confirm order. Please check connection.'));
+  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${(i.Price*i.qty).toFixed(2)}`).join('; ');
+  const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
+
+  const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
+
+  fetch('ORDERS_WEB_APP_URL', { // replace with your Orders Web App URL
+    method:'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData)
+  })
+  .then(res=>res.json())
+  .then(data=>{
+    if(data.status==='success'){
+      alert('✅ Order confirmed!');
+      cart=[];
+      renderCart();
+      document.getElementById('cartPage').style.display='none';
+      document.getElementById('catalogPage').style.display='block';
+      document.getElementById('customerName').value='';
+      document.getElementById('customerPhone').value='';
+      document.getElementById('customerAddress').value='';
+    } else {
+      alert('Failed to send order');
+    }
+  })
+  .catch(err=>{
+    console.error(err);
+    alert('Failed to send order. Check internet.');
+  });
 });
 </script>
 </body>
