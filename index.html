@@ -3,13 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catalog & Orders App</title>
+<title>Product Catalog</title>
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
 .header { background:#ff6b6b; color:white; padding:15px; text-align:center; }
-.navbar { display:flex; justify-content:center; gap:10px; margin-bottom:10px; }
-.navbar button { padding:10px 15px; border:none; border-radius:5px; cursor:pointer; background:#3498db; color:white; }
-.navbar button.active { background:#2ecc71; }
 .search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
 .products-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:15px; padding:20px; }
 .product-card { background:white; padding:15px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
@@ -21,9 +18,9 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 .product-price { font-weight:bold; color:#27ae60; margin-bottom:5px; }
 .product-rating { color:#f39c12; margin-bottom:5px; }
 .add-to-cart { background:#3498db; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer; }
-.cart-page, .orders-page { display:none; padding:20px; }
-.cart-item, .order-card { background:white; padding:10px; margin-bottom:10px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1); }
-.cart-item-name, .order-title { font-weight:bold; }
+.cart-page { display:none; padding:20px; }
+.cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; }
+.cart-item-name { font-weight:bold; }
 .cart-buttons { display:flex; gap:10px; margin-top:10px; }
 .cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
 </style>
@@ -31,22 +28,14 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 <body>
 
 <div class="header">
-  <h1>🛍️ Catalog & Orders App</h1>
-</div>
-
-<div class="navbar">
-  <button id="tabCatalog" class="active">Catalog</button>
-  <button id="tabCart">Cart</button>
-  <button id="tabOrders">Confirmed Orders</button>
-</div>
-
-<!-- Catalog Page -->
-<div id="catalogPage">
+  <h1>🛍️ Product Catalog</h1>
   <input type="text" id="searchInput" class="search-bar" placeholder="Search products...">
+</div>
+
+<div id="catalogPage">
   <div class="products-grid" id="productsGrid">Loading products...</div>
 </div>
 
-<!-- Cart Page -->
 <div id="cartPage" class="cart-page">
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
@@ -57,61 +46,27 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   </div>
 </div>
 
-<!-- Orders Page -->
-<div id="ordersPage" class="orders-page">
-  <h2>📦 Confirmed Orders</h2>
-  <div id="ordersContainer">Loading orders...</div>
-</div>
-
 <script>
-// =================== CONFIG ===================
-const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwg1DI0fH8M057Z61pyqiyx_erPy8OyR-DhQLnh_I7EXSMpAxag-I3E5DQNmV3PysiL/exec';
+const PRODUCTS_WEB_APP_URL = 'YOUR_PRODUCTS_WEB_APP_URL';
+const ORDERS_WEB_APP_URL = 'YOUR_ORDERS_WEB_APP_URL';
 
-// =================== STATE ===================
 let products = [];
 let cart = [];
 let searchTerm = '';
 
-// =================== NAVIGATION ===================
-const catalogPage = document.getElementById('catalogPage');
-const cartPage = document.getElementById('cartPage');
-const ordersPage = document.getElementById('ordersPage');
-
-document.getElementById('tabCatalog').addEventListener('click', () => showPage('catalog'));
-document.getElementById('tabCart').addEventListener('click', () => showPage('cart'));
-document.getElementById('tabOrders').addEventListener('click', () => showPage('orders'));
-
-function showPage(page) {
-  catalogPage.style.display = page==='catalog' ? 'block' : 'none';
-  cartPage.style.display = page==='cart' ? 'block' : 'none';
-  ordersPage.style.display = page==='orders' ? 'block' : 'none';
-  document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
-  document.getElementById('tabCatalog').classList.toggle('active', page==='catalog');
-  document.getElementById('tabCart').classList.toggle('active', page==='cart');
-  document.getElementById('tabOrders').classList.toggle('active', page==='orders');
-  if(page==='orders') fetchOrders();
-}
-
-// =================== FETCH PRODUCTS ===================
 fetch(PRODUCTS_WEB_APP_URL)
   .then(res => res.json())
   .then(data => { products = data; renderProducts(); })
   .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
 
-// =================== SEARCH ===================
 document.getElementById('searchInput').addEventListener('input', e => {
   searchTerm = e.target.value.toLowerCase();
   renderProducts();
 });
 
-// =================== RENDER PRODUCTS ===================
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
-  let filtered = products.filter(p => 
-    p.Name.toLowerCase().includes(searchTerm) || 
-    p.Description.toLowerCase().includes(searchTerm)
-  );
+  const filtered = products.filter(p => p.Name.toLowerCase().includes(searchTerm) || p.Description.toLowerCase().includes(searchTerm));
   if(filtered.length===0){ grid.innerHTML='No products found'; return; }
 
   grid.innerHTML = filtered.map(p=>`
@@ -130,15 +85,19 @@ function renderProducts() {
   `).join('');
 }
 
-// =================== CART ===================
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
   if(!qty || qty<1) return;
   const existing = cart.find(item=>item.ID==id);
-  if(existing) existing.qty += qty;
-  else cart.push({...product, qty});
-  showPage('cart'); renderCart();
+  if(existing) existing.qty += qty; else cart.push({...product, qty});
+  showCartPage();
+}
+
+function showCartPage(){
+  document.getElementById('catalogPage').style.display='none';
+  document.getElementById('cartPage').style.display='block';
+  renderCart();
 }
 
 function renderCart(){
@@ -158,19 +117,18 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// =================== CART BUTTONS ===================
-document.getElementById('continueShoppingBtn').addEventListener('click', ()=> showPage('catalog'));
+document.getElementById('continueShoppingBtn').addEventListener('click', ()=> {
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
 
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
-
   const customerName = prompt('Enter your name') || 'N/A';
   const customerPhone = prompt('Enter phone number') || 'N/A';
   const customerAddress = prompt('Enter delivery address') || 'N/A';
-
   const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
   const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
-
   const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
 
   fetch(ORDERS_WEB_APP_URL, {
@@ -181,7 +139,9 @@ document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   .then(data=>{
     if(data.status==='success'){
       alert('✅ Order confirmed!');
-      cart=[]; renderCart(); showPage('catalog'); fetchOrders();
+      cart=[]; renderCart();
+      document.getElementById('cartPage').style.display='none';
+      document.getElementById('catalogPage').style.display='block';
     } else {
       alert('Failed to send order: ' + (data.message || 'Unknown error'));
     }
@@ -191,28 +151,6 @@ document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
     alert('Failed to send order. Check internet.');
   });
 });
-
-// =================== FETCH ORDERS ===================
-function fetchOrders(){
-  const container = document.getElementById('ordersContainer');
-  container.innerHTML = 'Loading orders...';
-  fetch(ORDERS_WEB_APP_URL)
-    .then(res => res.json())
-    .then(data => {
-      if(!data || data.length===0){ container.innerHTML='No confirmed orders yet.'; return; }
-      container.innerHTML = data.map(order => `
-        <div class="order-card">
-          <div class="order-title">Customer: ${order['CutomerName'] || 'N/A'}</div>
-          <div class="order-details">Phone: ${order['CustomerPhone'] || 'N/A'}</div>
-          <div class="order-details">Address: ${order['customerAddress'] || 'N/A'}</div>
-          <div class="order-details">Products: ${order['products'] || 'N/A'}</div>
-          <div class="order-details">Total: $${order['total'] || '0.00'}</div>
-        </div>
-      `).join('');
-    })
-    .catch(err => { console.error(err); container.innerHTML='Failed to load orders.'; });
-}
 </script>
-
 </body>
 </html>
