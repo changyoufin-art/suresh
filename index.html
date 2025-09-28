@@ -94,7 +94,7 @@ function renderProducts() {
       <div class="product-name">${p.Name}</div>
       <div class="product-description">${p.Description}</div>
       <div class="product-weight">Weight: ${p.Weight}</div>
-      <div class="product-price">₹${p.Price}</div>
+      <div class="product-price">₹${parseFloat(p.Price).toFixed(2)}</div>
       <div class="product-rating">Rating: ${p.Rating} ⭐</div>
       <div>
         Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:50px;">
@@ -117,7 +117,7 @@ function addToCart(id){
   updateCartCount();
 }
 
-// Update cart item count on header
+// Update cart item count
 function updateCartCount(){
   let count = cart.reduce((sum,i)=>sum+i.qty,0);
   document.getElementById('cartCount').innerText = count;
@@ -143,7 +143,7 @@ function renderCart(){
         <div>
           <div class="cart-item-name">${item.Name}</div>
           <div>Qty: ${item.qty}</div>
-          <div>Price: ₹${item.Price}</div>
+          <div>Price: ₹${parseFloat(item.Price).toFixed(2)}</div>
         </div>
         <button class="remove-btn" onclick="removeFromCart(${item.ID})">Remove</button>
       </div>
