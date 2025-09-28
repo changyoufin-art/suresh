@@ -158,14 +158,12 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// Continue Shopping
+// =================== CART BUTTONS ===================
 document.getElementById('continueShoppingBtn').addEventListener('click', ()=> showPage('catalog'));
 
-// Confirm Order
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
 
-  // Optional: you can ask for customer info via prompt
   const customerName = prompt('Enter your name') || 'N/A';
   const customerPhone = prompt('Enter phone number') || 'N/A';
   const customerAddress = prompt('Enter delivery address') || 'N/A';
