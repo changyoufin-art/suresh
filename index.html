@@ -43,7 +43,8 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   <div id="cartItems"></div>
   <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
   <div class="cart-buttons">
-    <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue</button>
+    <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
+    <button id="clearCartBtn" style="background:#e74c3c;color:white;">Clear Cart</button>
   </div>
 </div>
 
@@ -52,8 +53,8 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Your Products Web App URL
-const PRODUCTS_WEB_APP_URL = 'https://https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
+// Your working Products Web App URL
+const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
 
 // Fetch products
 fetch(PRODUCTS_WEB_APP_URL)
@@ -146,7 +147,14 @@ document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
   document.getElementById('cartPage').style.display='none';
   document.getElementById('catalogPage').style.display='block';
 });
+
+// Clear Cart
+document.getElementById('clearCartBtn').addEventListener('click', ()=>{
+  cart = [];
+  renderCart();
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
 </script>
 </body>
 </html>
-
