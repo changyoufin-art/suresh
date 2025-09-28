@@ -61,8 +61,8 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Fetch products
-fetch('https://script.google.com/macros/s/AKfycbyOpgzTGkf2JZKtU4LDFNZTMt0BDF4Q08mCHm6ThC1a4_0h9FBJ1PovOJ4hE4iZbRuJyQ/exec')
+// Fetch products from your new URL
+fetch('https://script.google.com/macros/s/AKfycbwpo7E6ldqt9cphYNX_EsEY32HugJ2hbHLYl2h4p-G3PcqWgHoCHGXqBjZQEQrb0GV0gg/exec')
   .then(res => res.json())
   .then(data => {
     products = data;
