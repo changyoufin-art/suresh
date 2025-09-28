@@ -66,7 +66,7 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 <script>
 // =================== CONFIG ===================
 const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwYiOl89H8jEiIo_fLfwL030nNedANqfwED7Igp9ecddlw4AQKu8gGYIkWURoyg3FA/exec';
+const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwg1DI0fH8M057Z61pyqiyx_erPy8OyR-DhQLnh_I7EXSMpAxag-I3E5DQNmV3PysiL/exec';
 
 // =================== STATE ===================
 let products = [];
@@ -183,7 +183,7 @@ document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
       alert('✅ Order confirmed!');
       cart=[]; renderCart(); showPage('catalog'); fetchOrders();
     } else {
-      alert('Failed to send order');
+      alert('Failed to send order: ' + (data.message || 'Unknown error'));
     }
   })
   .catch(err=>{
@@ -202,12 +202,11 @@ function fetchOrders(){
       if(!data || data.length===0){ container.innerHTML='No confirmed orders yet.'; return; }
       container.innerHTML = data.map(order => `
         <div class="order-card">
-          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'}</div>
-          <div class="order-details">Phone: ${order['Phone'] || 'N/A'}</div>
-          <div class="order-details">Address: ${order['Address'] || 'N/A'}</div>
-          <div class="order-details">Products: ${order['Products'] || 'N/A'}</div>
-          <div class="order-details">Total: $${order['Total'] || '0.00'}</div>
-          <div class="order-details">Time: ${order['Timestamp'] || ''}</div>
+          <div class="order-title">Customer: ${order['CutomerName'] || 'N/A'}</div>
+          <div class="order-details">Phone: ${order['CustomerPhone'] || 'N/A'}</div>
+          <div class="order-details">Address: ${order['customerAddress'] || 'N/A'}</div>
+          <div class="order-details">Products: ${order['products'] || 'N/A'}</div>
+          <div class="order-details">Total: $${order['total'] || '0.00'}</div>
         </div>
       `).join('');
     })
