@@ -42,17 +42,9 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
   <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
-
-  <h3>Customer Info</h3>
-  <input type="text" id="customerName" placeholder="Name" style="width:100%;padding:10px;margin-bottom:5px;">
-  <input type="text" id="customerSurname" placeholder="Surname" style="width:100%;padding:10px;margin-bottom:5px;">
-  <input type="text" id="customerPhone" placeholder="Phone number" style="width:100%;padding:10px;margin-bottom:5px;">
-  <input type="text" id="customerAddress" placeholder="Address" style="width:100%;padding:10px;margin-bottom:5px;">
-
   <div class="cart-buttons">
     <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
     <button id="clearCartBtn" style="background:#e74c3c;color:white;">Clear Cart</button>
-    <button id="confirmOrderBtn" style="background:#27ae60;color:white;">Confirm Order</button>
   </div>
 </div>
 
@@ -61,17 +53,20 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// ✅ Products URL (do not touch)
+// Your working Products Web App URL
 const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
-
-// ✅ Orders + Customers Web App URL
-const ORDERS_CUSTOMERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0SRF9jPCnbOvg8S6TxbdmLqbC75VQWxyM_5y1-DauLgASC0prUrRxrOsbuTh6H8W9/exec';
 
 // Fetch products
 fetch(PRODUCTS_WEB_APP_URL)
   .then(res => res.json())
-  .then(data => { products = data; renderProducts(); })
-  .catch(err => { console.error(err); document.getElementById('productsGrid').innerHTML = 'Failed to load products'; });
+  .then(data => {
+    products = data;
+    renderProducts();
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById('productsGrid').innerHTML = 'Failed to load products';
+  });
 
 // Search products
 document.getElementById('searchInput').addEventListener('input', e => {
@@ -85,7 +80,12 @@ function renderProducts() {
     p.Name.toLowerCase().includes(searchTerm) || 
     p.Description.toLowerCase().includes(searchTerm)
   );
-  if(filtered.length===0){ grid.innerHTML = 'No products found'; return; }
+
+  if(filtered.length===0){
+    grid.innerHTML = 'No products found';
+    return;
+  }
+
   grid.innerHTML = filtered.map(p=>`
     <div class="product-card">
       <div class="product-image"><img src="${p.Image}" alt="${p.Name}"></div>
@@ -122,7 +122,7 @@ function showCartPage(){
   renderCart();
 }
 
-// Render cart
+// Render cart items
 function renderCart(){
   const container = document.getElementById('cartItems');
   container.innerHTML = '';
@@ -154,63 +154,6 @@ document.getElementById('clearCartBtn').addEventListener('click', ()=>{
   renderCart();
   document.getElementById('cartPage').style.display='none';
   document.getElementById('catalogPage').style.display='block';
-});
-
-// Load customer info from localStorage
-window.addEventListener('load', ()=>{
-  document.getElementById('customerName').value = localStorage.getItem('customerName') || '';
-  document.getElementById('customerSurname').value = localStorage.getItem('customerSurname') || '';
-  document.getElementById('customerPhone').value = localStorage.getItem('customerPhone') || '';
-  document.getElementById('customerAddress').value = localStorage.getItem('customerAddress') || '';
-});
-
-// Confirm Order
-document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
-  if(cart.length===0){ alert('Cart is empty'); return; }
-
-  const customerName = document.getElementById('customerName').value.trim();
-  const customerSurname = document.getElementById('customerSurname').value.trim();
-  const customerPhone = document.getElementById('customerPhone').value.trim();
-  const customerAddress = document.getElementById('customerAddress').value.trim();
-
-  if(!customerName || !customerPhone || !customerAddress){ 
-    alert('Please fill all required fields'); return; 
-  }
-
-  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
-  const total = cart.reduce((sum,i)=>sum+parseFloat(i.Price)*i.qty,0).toFixed(2);
-
-  const payload = {
-    customerName, customerSurname, customerPhone, customerAddress,
-    products: productsStr, total
-  };
-
-  fetch(ORDERS_CUSTOMERS_WEB_APP_URL,{
-    method:'POST',
-    body: JSON.stringify(payload)
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.status==='success'){
-      // Save locally for future
-      localStorage.setItem('customerName', customerName);
-      localStorage.setItem('customerSurname', customerSurname);
-      localStorage.setItem('customerPhone', customerPhone);
-      localStorage.setItem('customerAddress', customerAddress);
-
-      alert('✅ Order confirmed and saved!');
-      cart=[];
-      renderCart();
-      document.getElementById('cartPage').style.display='none';
-      document.getElementById('catalogPage').style.display='block';
-    } else {
-      alert('❌ Failed: '+(data.message||'Unknown error'));
-    }
-  })
-  .catch(err=>{
-    console.error(err);
-    alert('Failed to send order');
-  });
 });
 </script>
 </body>
