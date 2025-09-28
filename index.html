@@ -66,7 +66,7 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 <script>
 // =================== CONFIG ===================
 const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0SRF9jPCnbOvg8S6TxbdmLqbC75VQWxyM_5y1-DauLgASC0prUrRxrOsbuTh6H8W9/exec';
+const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby2TJlf4Tm8oreTqZSiQKCtYdaGCO4O2gruz_vCnXgS8eu5u3LOg6XL_9eshn8GEA/exec';
 
 // =================== STATE ===================
 let products = [];
@@ -165,13 +165,21 @@ document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
 
   const customerName = prompt('Enter your name') || 'N/A';
+  const customerSurname = prompt('Enter your surname') || 'N/A';
   const customerPhone = prompt('Enter phone number') || 'N/A';
   const customerAddress = prompt('Enter delivery address') || 'N/A';
 
   const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
   const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
 
-  const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
+  const orderData = { 
+    customerName, 
+    customerSurname, 
+    customerPhone, 
+    customerAddress, 
+    products: productsStr, 
+    total 
+  };
 
   fetch(ORDERS_WEB_APP_URL, {
     method:'POST',
@@ -202,7 +210,7 @@ function fetchOrders(){
       if(!data || data.length===0){ container.innerHTML='No confirmed orders yet.'; return; }
       container.innerHTML = data.map(order => `
         <div class="order-card">
-          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'}</div>
+          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'} ${order['Surname'] || ''}</div>
           <div class="order-details">Phone: ${order['Phone'] || 'N/A'}</div>
           <div class="order-details">Address: ${order['Address'] || 'N/A'}</div>
           <div class="order-details">Products: ${order['Products'] || 'N/A'}</div>
@@ -217,4 +225,3 @@ function fetchOrders(){
 
 </body>
 </html>
-
