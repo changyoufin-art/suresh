@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Product Catalog</title>
 <style>
-/* Basic styling */
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
 .header { background:#ff6b6b; color:white; padding:20px; text-align:center; }
 .search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
@@ -22,7 +21,6 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 .cart-page { display:none; padding:20px; }
 .cart-item { background:white; padding:10px; margin-bottom:10px; border-radius:8px; }
 .cart-item-name { font-weight:bold; }
-.cart-item-qty { width:50px; }
 .cart-buttons { display:flex; gap:10px; margin-top:10px; }
 .cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
 </style>
@@ -44,13 +42,7 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
   <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
-  <div style="margin-top:15px;">
-    <input type="text" id="customerName" placeholder="Your Name" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
-    <input type="text" id="customerPhone" placeholder="Phone Number" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
-    <input type="text" id="customerAddress" placeholder="Delivery Address" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:1px solid #ccc;">
-  </div>
   <div class="cart-buttons">
-    <button id="confirmOrderBtn" style="background:#e67e22;color:white;">Confirm Order</button>
     <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue</button>
   </div>
 </div>
@@ -60,12 +52,10 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Replace this with your deployed Products Web App URL
+// Your Products Web App URL
 const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzfqpWnb5koBYjZF_jjyCtVtH0SaWtDO-Rj97fmujUQ1oA44MagCKmh7Etr7EYXqwASCw/exec';
-// Replace this with your deployed Orders Web App URL (can be same or different script)
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzfqpWnb5koBYjZF_jjyCtVtH0SaWtDO-Rj97fmujUQ1oA44MagCKmh7Etr7EYXqwASCw/exec';
 
-// Fetch products from Google Sheet
+// Fetch products
 fetch(PRODUCTS_WEB_APP_URL)
   .then(res => res.json())
   .then(data => {
@@ -77,6 +67,7 @@ fetch(PRODUCTS_WEB_APP_URL)
     document.getElementById('productsGrid').innerHTML = 'Failed to load products';
   });
 
+// Search products
 document.getElementById('searchInput').addEventListener('input', e => {
   searchTerm = e.target.value.toLowerCase();
   renderProducts();
@@ -110,6 +101,7 @@ function renderProducts() {
   `).join('');
 }
 
+// Add to cart
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
@@ -122,12 +114,14 @@ function addToCart(id){
   showCartPage();
 }
 
+// Show cart
 function showCartPage(){
   document.getElementById('catalogPage').style.display='none';
   document.getElementById('cartPage').style.display='block';
   renderCart();
 }
 
+// Render cart items
 function renderCart(){
   const container = document.getElementById('cartItems');
   container.innerHTML = '';
@@ -151,41 +145,6 @@ function renderCart(){
 document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
   document.getElementById('cartPage').style.display='none';
   document.getElementById('catalogPage').style.display='block';
-});
-
-// Confirm Order
-document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
-  if(cart.length===0){ alert('Cart is empty'); return; }
-
-  const customerName = document.getElementById('customerName').value || 'N/A';
-  const customerPhone = document.getElementById('customerPhone').value || 'N/A';
-  const customerAddress = document.getElementById('customerAddress').value || 'N/A';
-
-  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
-  const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
-
-  const orderData = { customerName, customerPhone, customerAddress, products: productsStr, total };
-
-  fetch(ORDERS_WEB_APP_URL, {
-    method:'POST',
-    body: JSON.stringify(orderData)
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.status==='success'){
-      alert('✅ Order confirmed!');
-      cart=[];
-      renderCart();
-      document.getElementById('cartPage').style.display='none';
-      document.getElementById('catalogPage').style.display='block';
-    } else {
-      alert('Failed to send order');
-    }
-  })
-  .catch(err=>{
-    console.error(err);
-    alert('Failed to send order. Check internet.');
-  });
 });
 </script>
 </body>
