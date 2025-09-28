@@ -10,7 +10,8 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 .search-bar { width:90%; padding:10px; border-radius:25px; border:none; margin:10px auto; display:block; }
 .products-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:15px; padding:20px; }
 .product-card { background:white; padding:15px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); }
-.product-image { font-size:50px; text-align:center; margin-bottom:10px; }
+.product-image { text-align:center; margin-bottom:10px; }
+.product-image img { max-width:100%; border-radius:10px; }
 .product-name { font-weight:bold; font-size:16px; margin-bottom:5px; }
 .product-description { font-size:14px; margin-bottom:5px; }
 .product-weight { font-size:14px; color:#555; margin-bottom:5px; }
@@ -32,7 +33,9 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 </div>
 
 <div id="catalogPage">
-  <div class="products-grid" id="productsGrid">Loading products...</div>
+  <div class="products-grid" id="productsGrid">
+    Loading products...
+  </div>
 </div>
 
 <div id="cartPage" class="cart-page">
@@ -48,6 +51,7 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 
   <div class="cart-buttons">
     <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
+    <button id="clearCartBtn" style="background:#e74c3c;color:white;">Clear Cart</button>
     <button id="confirmOrderBtn" style="background:#27ae60;color:white;">Confirm Order</button>
   </div>
 </div>
@@ -57,15 +61,19 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzfqpWnb5koBYjZF_jjyCtVtH0SaWtDO-Rj97fmujUQ1oA44MagCKmh7Etr7EYXqwASCw/exec';
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0SRF9jPCnbOvg8S6TxbdmLqbC75VQWxyM_5y1-DauLgASC0prUrRxrOsbuTh6H8W9/exec';
+// ✅ Products URL (do not touch)
+const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
+
+// ✅ Orders + Customers Web App URL
+const ORDERS_CUSTOMERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw0SRF9jPCnbOvg8S6TxbdmLqbC75VQWxyM_5y1-DauLgASC0prUrRxrOsbuTh6H8W9/exec';
 
 // Fetch products
 fetch(PRODUCTS_WEB_APP_URL)
   .then(res => res.json())
   .then(data => { products = data; renderProducts(); })
-  .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
+  .catch(err => { console.error(err); document.getElementById('productsGrid').innerHTML = 'Failed to load products'; });
 
+// Search products
 document.getElementById('searchInput').addEventListener('input', e => {
   searchTerm = e.target.value.toLowerCase();
   renderProducts();
@@ -77,11 +85,10 @@ function renderProducts() {
     p.Name.toLowerCase().includes(searchTerm) || 
     p.Description.toLowerCase().includes(searchTerm)
   );
-  if(filtered.length===0){ grid.innerHTML='No products found'; return; }
-
+  if(filtered.length===0){ grid.innerHTML = 'No products found'; return; }
   grid.innerHTML = filtered.map(p=>`
     <div class="product-card">
-      <div class="product-image">${p.Image}</div>
+      <div class="product-image"><img src="${p.Image}" alt="${p.Name}"></div>
       <div class="product-name">${p.Name}</div>
       <div class="product-description">${p.Description}</div>
       <div class="product-weight">Weight: ${p.Weight}</div>
@@ -95,6 +102,7 @@ function renderProducts() {
   `).join('');
 }
 
+// Add to cart
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
@@ -107,12 +115,14 @@ function addToCart(id){
   showCartPage();
 }
 
+// Show cart
 function showCartPage(){
   document.getElementById('catalogPage').style.display='none';
   document.getElementById('cartPage').style.display='block';
   renderCart();
 }
 
+// Render cart
 function renderCart(){
   const container = document.getElementById('cartItems');
   container.innerHTML = '';
@@ -132,63 +142,75 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// Load previous customer info from localStorage
+// Continue Shopping
+document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
+
+// Clear Cart
+document.getElementById('clearCartBtn').addEventListener('click', ()=>{
+  cart = [];
+  renderCart();
+  document.getElementById('cartPage').style.display='none';
+  document.getElementById('catalogPage').style.display='block';
+});
+
+// Load customer info from localStorage
 window.addEventListener('load', ()=>{
-  const phone = localStorage.getItem('customerPhone');
-  if(phone){
-    document.getElementById('customerPhone').value = phone;
-    document.getElementById('customerName').value = localStorage.getItem('customerName') || '';
-    document.getElementById('customerSurname').value = localStorage.getItem('customerSurname') || '';
-    document.getElementById('customerAddress').value = localStorage.getItem('customerAddress') || '';
-  }
+  document.getElementById('customerName').value = localStorage.getItem('customerName') || '';
+  document.getElementById('customerSurname').value = localStorage.getItem('customerSurname') || '';
+  document.getElementById('customerPhone').value = localStorage.getItem('customerPhone') || '';
+  document.getElementById('customerAddress').value = localStorage.getItem('customerAddress') || '';
 });
 
 // Confirm Order
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
+  if(cart.length===0){ alert('Cart is empty'); return; }
+
   const customerName = document.getElementById('customerName').value.trim();
   const customerSurname = document.getElementById('customerSurname').value.trim();
   const customerPhone = document.getElementById('customerPhone').value.trim();
   const customerAddress = document.getElementById('customerAddress').value.trim();
 
-  if(cart.length===0){ alert('Cart is empty'); return; }
-  if(!customerName || !customerPhone || !customerAddress){ alert('Please fill all fields'); return; }
+  if(!customerName || !customerPhone || !customerAddress){ 
+    alert('Please fill all required fields'); return; 
+  }
 
   const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
   const total = cart.reduce((sum,i)=>sum+parseFloat(i.Price)*i.qty,0).toFixed(2);
 
-  const orderData = { customerName, customerSurname, customerPhone, customerAddress, products: productsStr, total };
+  const payload = {
+    customerName, customerSurname, customerPhone, customerAddress,
+    products: productsStr, total
+  };
 
-  fetch(ORDERS_WEB_APP_URL,{
+  fetch(ORDERS_CUSTOMERS_WEB_APP_URL,{
     method:'POST',
-    body: JSON.stringify(orderData)
+    body: JSON.stringify(payload)
   })
   .then(res=>res.json())
   .then(data=>{
     if(data.status==='success'){
-      localStorage.setItem('customerPhone', customerPhone);
+      // Save locally for future
       localStorage.setItem('customerName', customerName);
       localStorage.setItem('customerSurname', customerSurname);
+      localStorage.setItem('customerPhone', customerPhone);
       localStorage.setItem('customerAddress', customerAddress);
 
-      alert('✅ Order confirmed!');
+      alert('✅ Order confirmed and saved!');
       cart=[];
       renderCart();
       document.getElementById('cartPage').style.display='none';
       document.getElementById('catalogPage').style.display='block';
     } else {
-      alert('Failed to send order: '+(data.message||'Unknown error'));
+      alert('❌ Failed: '+(data.message||'Unknown error'));
     }
   })
   .catch(err=>{
     console.error(err);
-    alert('Failed to send order. Check internet.');
+    alert('Failed to send order');
   });
-});
-
-// Continue Shopping
-document.getElementById('continueShoppingBtn').addEventListener('click', ()=>{
-  document.getElementById('cartPage').style.display='none';
-  document.getElementById('catalogPage').style.display='block';
 });
 </script>
 </body>
