@@ -164,10 +164,21 @@ document.getElementById('continueShoppingBtn').addEventListener('click', ()=> sh
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
 
-  const customerName = prompt('Enter your name') || 'N/A';
-const customerSurname = prompt('Enter your surname') || 'N/A';
-  const customerPhone = prompt('Enter phone number') || 'N/A';
-  const customerAddress = prompt('Enter delivery address') || 'N/A';
+  const customerName = prompt('Enter your name') || '';
+  const customerSurname = prompt('Enter your surname') || '';
+  const customerPhone = prompt('Enter phone number') || '';
+  const customerAddress = prompt('Enter delivery address') || '';
+
+  // Validation
+  if(!customerName || !customerSurname || !customerPhone || !customerAddress){
+    alert('❌ All fields are required. Order not confirmed.');
+    return;
+  }
+
+  if(!/^\d{10}$/.test(customerPhone)){
+    alert('❌ Phone number must be exactly 10 digits.');
+    return;
+  }
 
   const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
   const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
@@ -203,7 +214,7 @@ function fetchOrders(){
       if(!data || data.length===0){ container.innerHTML='No confirmed orders yet.'; return; }
       container.innerHTML = data.map(order => `
         <div class="order-card">
-          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'}</div>
+          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'} ${order['Surname'] || ''}</div>
           <div class="order-details">Phone: ${order['Phone'] || 'N/A'}</div>
           <div class="order-details">Address: ${order['Address'] || 'N/A'}</div>
           <div class="order-details">Products: ${order['Products'] || 'N/A'}</div>
@@ -218,4 +229,3 @@ function fetchOrders(){
 
 </body>
 </html>
-
