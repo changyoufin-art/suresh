@@ -164,17 +164,18 @@ document.getElementById('continueShoppingBtn').addEventListener('click', ()=> sh
 document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
   if(cart.length===0){ alert('Cart is empty'); return; }
 
-  const customerName = prompt('Enter your name') || '';
-  const customerSurname = prompt('Enter your surname') || '';
-  const customerPhone = prompt('Enter phone number') || '';
-  const customerAddress = prompt('Enter delivery address') || '';
+  const customerName = prompt('Enter your name');
+  const customerSurname = prompt('Enter your surname');
+  const customerPhone = prompt('Enter phone number');
+  const customerAddress = prompt('Enter delivery address');
 
-  // Validation
+  // VALIDATION: required fields
   if(!customerName || !customerSurname || !customerPhone || !customerAddress){
     alert('❌ All fields are required. Order not confirmed.');
     return;
   }
 
+  // VALIDATION: phone 10 digits
   if(!/^\d{10}$/.test(customerPhone)){
     alert('❌ Phone number must be exactly 10 digits.');
     return;
