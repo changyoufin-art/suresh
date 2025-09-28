@@ -61,8 +61,8 @@ let products = [];
 let cart = [];
 let searchTerm = '';
 
-// Fetch products from your Web App URL
-fetch('https://script.google.com/macros/s/AKfycby4FBbZQB87ns8hROPVg8QjJ0udNzqzDgvk6uw9TG2I0v77HZTNrfLE9v1o81wPk-DLww/exec')
+// Fetch products from your new Web App URL
+fetch('https://script.google.com/macros/s/AKfycbw0iyFu_XkvCEBHzniVC5xMr4SgjDkTvYVV2h0hKl-igyD7c485Ifk6lsisY6vBlSvr-w/exec')
   .then(res => res.json())
   .then(data => {
     products = data;
@@ -104,7 +104,7 @@ function renderProducts() {
   `).join('');
 }
 
-// Add to Cart (stay on product page)
+// Add to Cart (stay on catalog page)
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
@@ -117,7 +117,7 @@ function addToCart(id){
   updateCartCount();
 }
 
-// Update cart item count
+// Update cart count
 function updateCartCount(){
   let count = cart.reduce((sum,i)=>sum+i.qty,0);
   document.getElementById('cartCount').innerText = count;
@@ -143,7 +143,7 @@ function renderCart(){
         <div>
           <div class="cart-item-name">${item.Name}</div>
           <div>Qty: ${item.qty}</div>
-          <div>Price: ₹${parseFloat(item.Price).toFixed(2)}</div>
+          <div>Price: ₹${(item.Price*item.qty).toFixed(2)}</div>
         </div>
         <button class="remove-btn" onclick="removeFromCart(${item.ID})">Remove</button>
       </div>
@@ -153,7 +153,7 @@ function renderCart(){
   document.getElementById('cartTotal').innerText = total.toFixed(2);
 }
 
-// Remove item from cart
+// Remove from cart
 function removeFromCart(id){
   cart = cart.filter(item=>item.ID !== id);
   renderCart();
