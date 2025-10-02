@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Catalog & Orders App</title>
 <style>
+/* Minimal styling */
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; }
 .header { background:#ff6b6b; color:white; padding:15px; text-align:center; }
 .navbar { display:flex; justify-content:center; gap:10px; margin-bottom:10px; }
@@ -26,13 +27,17 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
 .cart-item-name, .order-title { font-weight:bold; }
 .cart-buttons { display:flex; gap:10px; margin-top:10px; }
 .cart-buttons button { padding:10px; border:none; border-radius:8px; cursor:pointer; flex:1; }
+.form-row { display:flex; gap:8px; margin-bottom:8px; }
+.form-row input { flex:1; padding:8px; border-radius:6px; border:1px solid #ccc; }
+.alert { color:#c00; margin:8px 0; }
+.modal { display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000; }
+.modal-content { background:#fff; padding:18px; border-radius:8px; width:360px; max-width:95%; }
+small.note { color:#666; display:block; margin-top:6px; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>🛍️ Catalog & Orders App</h1>
-</div>
+<div class="header"><h1>🛍️ Catalog & Orders App</h1></div>
 
 <div class="navbar">
   <button id="tabCatalog" class="active">Catalog</button>
@@ -40,193 +45,394 @@ body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f0f0f0; 
   <button id="tabOrders">Confirmed Orders</button>
 </div>
 
-<!-- Catalog Page -->
+<!-- Catalog -->
 <div id="catalogPage">
-  <input type="text" id="searchInput" class="search-bar" placeholder="Search products...">
-  <div class="products-grid" id="productsGrid">Loading products...</div>
+  <input id="searchInput" class="search-bar" placeholder="Search products...">
+  <div id="productsGrid" class="products-grid">Loading products...</div>
 </div>
 
-<!-- Cart Page -->
+<!-- Cart -->
 <div id="cartPage" class="cart-page">
   <h2>🛒 Your Cart</h2>
   <div id="cartItems"></div>
   <div><strong>Total: $<span id="cartTotal">0.00</span></strong></div>
+
+  <h3>Account</h3>
+  <div id="accountArea"></div>
+
   <div class="cart-buttons">
     <button id="continueShoppingBtn" style="background:#95a5a6;color:white;">Continue Shopping</button>
     <button id="confirmOrderBtn" style="background:#27ae60;color:white;">Confirm Order</button>
   </div>
 </div>
 
-<!-- Orders Page -->
+<!-- Orders -->
 <div id="ordersPage" class="orders-page">
   <h2>📦 Confirmed Orders</h2>
   <div id="ordersContainer">Loading orders...</div>
 </div>
 
-<script>
-// =================== CONFIG ===================
-const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
-const ORDERS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycby2TJlf4Tm8oreTqZSiQKCtYdaGCO4O2gruz_vCnXgS8eu5u3LOg6XL_9eshn8GEA/exec';
+<!-- Modal -->
+<div id="modal" class="modal" role="dialog" aria-hidden="true">
+  <div class="modal-content" id="modalContent"></div>
+</div>
 
-// =================== STATE ===================
+<script>
+/* ================== CONFIG ================== */
+/* Keep the PRODUCTS URL unchanged (your working URL) */
+const PRODUCTS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwqdkURKVdzcMuRAGPWTi0iMWIWh6clarKE3tqv71A15KP4Db4uovz8CikoWlukG1EZBw/exec';
+
+/* Your provided endpoints — inserted here exactly */
+const CUSTOMER_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyPTp390GInbM3j61EYlM_pzOIvXHHPoROoSL_CMWbd3ej2eZ76XS_qo_6cOpCav4fF/exec';
+const ORDERS_WEB_APP_URL   = 'https://script.google.com/macros/s/AKfycbx5nhZUdVx_YfljyhpyE84YLjS7tzXsbZ2OwLBGIr_pXD3nMQ7Aemv6H5SbRlqdsvNS/exec';
+/* ============================================ */
+
 let products = [];
 let cart = [];
 let searchTerm = '';
 
-// =================== NAVIGATION ===================
+/* UI refs */
 const catalogPage = document.getElementById('catalogPage');
 const cartPage = document.getElementById('cartPage');
 const ordersPage = document.getElementById('ordersPage');
+const productsGrid = document.getElementById('productsGrid');
+const cartItems = document.getElementById('cartItems');
+const cartTotalEl = document.getElementById('cartTotal');
+const accountArea = document.getElementById('accountArea');
+const modal = document.getElementById('modal');
+const modalContent = document.getElementById('modalContent');
 
-document.getElementById('tabCatalog').addEventListener('click', () => showPage('catalog'));
-document.getElementById('tabCart').addEventListener('click', () => showPage('cart'));
-document.getElementById('tabOrders').addEventListener('click', () => showPage('orders'));
+/* NAV */
+document.getElementById('tabCatalog').addEventListener('click', ()=>showPage('catalog'));
+document.getElementById('tabCart').addEventListener('click', ()=>showPage('cart'));
+document.getElementById('tabOrders').addEventListener('click', ()=>showPage('orders'));
+document.getElementById('continueShoppingBtn').addEventListener('click', ()=>showPage('catalog'));
+document.getElementById('searchInput').addEventListener('input', (e)=>{ searchTerm = e.target.value.toLowerCase(); renderProducts(); });
 
-function showPage(page) {
+function showPage(page){
   catalogPage.style.display = page==='catalog' ? 'block' : 'none';
   cartPage.style.display = page==='cart' ? 'block' : 'none';
   ordersPage.style.display = page==='orders' ? 'block' : 'none';
-  document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.navbar button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tabCatalog').classList.toggle('active', page==='catalog');
   document.getElementById('tabCart').classList.toggle('active', page==='cart');
   document.getElementById('tabOrders').classList.toggle('active', page==='orders');
   if(page==='orders') fetchOrders();
 }
 
-// =================== FETCH PRODUCTS ===================
+/* Modal helpers */
+function openModal(html){ modalContent.innerHTML = html; modal.style.display = 'flex'; modal.setAttribute('aria-hidden','false'); }
+function closeModal(){ modal.style.display = 'none'; modalContent.innerHTML = ''; modal.setAttribute('aria-hidden','true'); }
+modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
+
+/* ================== PRODUCTS ================== */
 fetch(PRODUCTS_WEB_APP_URL)
-  .then(res => res.json())
-  .then(data => { products = data; renderProducts(); })
-  .catch(err => document.getElementById('productsGrid').innerHTML='Failed to load products');
+  .then(r=>r.json())
+  .then(data=>{ products = data || []; renderProducts(); })
+  .catch(err => { console.error(err); productsGrid.innerHTML = 'Failed to load products'; });
 
-// =================== SEARCH ===================
-document.getElementById('searchInput').addEventListener('input', e => {
-  searchTerm = e.target.value.toLowerCase();
-  renderProducts();
-});
-
-// =================== RENDER PRODUCTS ===================
-function renderProducts() {
-  const grid = document.getElementById('productsGrid');
-  let filtered = products.filter(p => 
-    p.Name.toLowerCase().includes(searchTerm) || 
-    p.Description.toLowerCase().includes(searchTerm)
-  );
-  if(filtered.length===0){ grid.innerHTML='No products found'; return; }
-
-  grid.innerHTML = filtered.map(p=>`
+function renderProducts(){
+  const filtered = products.filter(p => ((p.Name||'').toLowerCase().includes(searchTerm) || (p.Description||'').toLowerCase().includes(searchTerm)));
+  if(filtered.length===0){ productsGrid.innerHTML = 'No products found'; return; }
+  productsGrid.innerHTML = filtered.map(p=>`
     <div class="product-card">
-      <div class="product-image"><img src="${p.Image}" alt="${p.Name}"></div>
-      <div class="product-name">${p.Name}</div>
-      <div class="product-description">${p.Description}</div>
-      <div class="product-weight">Weight: ${p.Weight}</div>
-      <div class="product-price">$${p.Price}</div>
-      <div class="product-rating">Rating: ${p.Rating} ⭐</div>
-      <div>
-        Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:50px;">
-        <button class="add-to-cart" onclick="addToCart(${p.ID})">Add</button>
-      </div>
+      <div class="product-image"><img src="${p.Image || ''}" alt="${(p.Name||'')}"></div>
+      <div class="product-name">${p.Name||''}</div>
+      <div class="product-description">${p.Description||''}</div>
+      <div class="product-weight">Weight: ${p.Weight||''}</div>
+      <div class="product-price">$${p.Price||''}</div>
+      <div class="product-rating">Rating: ${p.Rating||''} ⭐</div>
+      <div>Qty: <input type="number" id="qty-${p.ID}" value="1" min="1" style="width:60px;">
+      <button class="add-to-cart" onclick="addToCart('${p.ID}')">Add</button></div>
     </div>
   `).join('');
 }
 
-// =================== CART ===================
+/* ================== CART ================== */
 function addToCart(id){
   const product = products.find(p=>p.ID==id);
   const qty = parseInt(document.getElementById(`qty-${id}`).value);
   if(!qty || qty<1) return;
-  const existing = cart.find(item=>item.ID==id);
+  const existing = cart.find(i=>i.ID==id);
   if(existing) existing.qty += qty;
   else cart.push({...product, qty});
-  showPage('cart'); renderCart();
+  showPage('cart');
+  renderCart();
 }
 
 function renderCart(){
-  const container = document.getElementById('cartItems');
-  container.innerHTML = '';
+  cartItems.innerHTML = '';
   let total = 0;
   cart.forEach(item=>{
-    total += parseFloat(item.Price)*item.qty;
-    container.innerHTML += `
-      <div class="cart-item">
-        <div class="cart-item-name">${item.Name}</div>
-        <div>Qty: ${item.qty}</div>
-        <div>Price: $${item.Price}</div>
-      </div>
-    `;
+    const price = parseFloat(item.Price||0);
+    total += price * item.qty;
+    cartItems.innerHTML += `<div class="cart-item">
+      <div class="cart-item-name">${item.Name}</div>
+      <div>Qty: ${item.qty}</div>
+      <div>Price: $${item.Price}</div>
+    </div>`;
   });
-  document.getElementById('cartTotal').innerText = total.toFixed(2);
+  cartTotalEl.innerText = total.toFixed(2);
+  renderAccountArea();
 }
 
-// =================== CART BUTTONS ===================
-document.getElementById('continueShoppingBtn').addEventListener('click', ()=> showPage('catalog'));
-
-document.getElementById('confirmOrderBtn').addEventListener('click', ()=>{
-  if(cart.length===0){ alert('Cart is empty'); return; }
-
-  const customerName = prompt('Enter your name');
-  const customerSurname = prompt('Enter your surname');
-  const customerPhone = prompt('Enter phone number');
-  const customerAddress = prompt('Enter delivery address');
-
-  // VALIDATION: required fields
-  if(!customerName || !customerSurname || !customerPhone || !customerAddress){
-    alert('❌ All fields are required. Order not confirmed.');
-    return;
+/* ================== ACCOUNT UI ================== */
+function renderAccountArea(){
+  const phone = localStorage.getItem('customerPhone');
+  if(phone){
+    accountArea.innerHTML = `
+      <div><strong>Logged in:</strong> ${escapeHtml(localStorage.getItem('customerName')||'')} ${escapeHtml(localStorage.getItem('customerSurname')||'')} (${escapeHtml(phone)})</div>
+      <small class="note">Email: ${escapeHtml(localStorage.getItem('customerEmail')||'')}</small>
+      <div style="margin-top:8px;"><button id="btnLogout" style="background:#e74c3c;color:#fff;padding:8px;border-radius:6px;border:none;">Logout</button></div>
+    `;
+    document.getElementById('btnLogout').addEventListener('click', ()=>{
+      localStorage.removeItem('customerPhone');
+      localStorage.removeItem('customerName');
+      localStorage.removeItem('customerSurname');
+      localStorage.removeItem('customerAddress');
+      localStorage.removeItem('customerEmail');
+      renderAccountArea();
+    });
+  } else {
+    accountArea.innerHTML = `
+      <div style="display:flex;gap:8px;">
+        <button id="btnShowLogin" style="background:#3498db;color:#fff;padding:8px;border-radius:6px;border:none;">Login</button>
+        <button id="btnShowSignup" style="background:#2ecc71;color:#fff;padding:8px;border-radius:6px;border:none;">Sign Up</button>
+      </div>
+      <div style="margin-top:8px;"><a id="forgotLink" href="#">Forgot Password?</a></div>
+    `;
+    document.getElementById('btnShowLogin').addEventListener('click', showLoginModal);
+    document.getElementById('btnShowSignup').addEventListener('click', showSignupModal);
+    document.getElementById('forgotLink').addEventListener('click', (ev)=>{ ev.preventDefault(); showForgotModal(); });
   }
+}
 
-  // VALIDATION: phone 10 digits
-  if(!/^\d{10}$/.test(customerPhone)){
-    alert('❌ Phone number must be exactly 10 digits.');
-    return;
-  }
+/* ================== MODALS: Login / Signup / Forgot ================== */
 
-  const productsStr = cart.map(i=>`${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
-  const total = cart.reduce((sum,i)=>sum + parseFloat(i.Price)*i.qty,0).toFixed(2);
+function showLoginModal(){
+  openModal(`
+    <h3>Login</h3>
+    <div class="form-row"><input id="m_phone" placeholder="Phone (10 digits)" /></div>
+    <div class="form-row"><input id="m_password" type="password" placeholder="Password" /></div>
+    <div style="text-align:right;"><button id="m_login_btn" style="background:#3498db;color:#fff;padding:8px;border-radius:6px;border:none;">Login</button></div>
+    <div id="m_login_msg" class="alert"></div>
+  `);
+  document.getElementById('m_login_btn').addEventListener('click', async ()=>{
+    const phone = document.getElementById('m_phone').value.trim();
+    const password = document.getElementById('m_password').value;
+    const msg = document.getElementById('m_login_msg');
+    msg.innerText = '';
+    if(!/^\d{10}$/.test(phone)){ msg.innerText = 'Phone must be 10 digits'; return; }
+    if(!password){ msg.innerText = 'Enter password'; return; }
 
-  const orderData = { customerName, customerSurname, customerPhone, customerAddress, products: productsStr, total };
-
-  fetch(ORDERS_WEB_APP_URL, {
-    method:'POST',
-    body: JSON.stringify(orderData)
-  })
-  .then(res=>res.json())
-  .then(data=>{
-    if(data.status==='success'){
-      alert('✅ Order confirmed!');
-      cart=[]; renderCart(); showPage('catalog'); fetchOrders();
-    } else {
-      alert('Failed to send order');
+    try{
+      const resp = await fetch(CUSTOMER_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action:'login', phone, password })
+      });
+      const j = await resp.json();
+      if(j.status === 'success' || j.success === true){
+        // The backend may return fields differently; accept both shapes
+        const name = j.name || j.Name || j.name || '';
+        const surname = j.surname || j.Surname || '';
+        const address = j.address || j.Address || '';
+        const email = j.email || j.Email || '';
+        localStorage.setItem('customerPhone', phone);
+        if(name) localStorage.setItem('customerName', name);
+        if(surname) localStorage.setItem('customerSurname', surname);
+        if(address) localStorage.setItem('customerAddress', address);
+        if(email) localStorage.setItem('customerEmail', email);
+        closeModal();
+        renderCart();
+        alert('Login successful');
+      } else {
+        msg.innerText = j.message || j.msg || 'Login failed';
+      }
+    } catch(err){
+      console.error(err);
+      msg.innerText = 'Network error';
     }
-  })
-  .catch(err=>{
-    console.error(err);
-    alert('Failed to send order. Check internet.');
   });
+}
+
+function showSignupModal(){
+  openModal(`
+    <h3>Sign Up</h3>
+    <div class="form-row"><input id="s_phone" placeholder="Phone (10 digits)" /></div>
+    <div class="form-row"><input id="s_name" placeholder="First name" /></div>
+    <div class="form-row"><input id="s_surname" placeholder="Surname" /></div>
+    <div class="form-row"><input id="s_address" placeholder="Address" /></div>
+    <div class="form-row"><input id="s_email" placeholder="Email" /></div>
+    <div class="form-row"><input id="s_password" type="password" placeholder="Password" /></div>
+    <div style="text-align:right;"><button id="s_signup_btn" style="background:#2ecc71;color:#fff;padding:8px;border-radius:6px;border:none;">Sign Up</button></div>
+    <div id="s_msg" class="alert"></div>
+  `);
+  document.getElementById('s_signup_btn').addEventListener('click', async ()=>{
+    const phone = document.getElementById('s_phone').value.trim();
+    const name = document.getElementById('s_name').value.trim();
+    const surname = document.getElementById('s_surname').value.trim();
+    const address = document.getElementById('s_address').value.trim();
+    const email = document.getElementById('s_email').value.trim();
+    const password = document.getElementById('s_password').value;
+    const msg = document.getElementById('s_msg');
+    msg.innerText = '';
+    if(!phone||!name||!surname||!address||!email||!password){ msg.innerText='All fields required'; return; }
+    if(!/^\d{10}$/.test(phone)){ msg.innerText='Phone must be 10 digits'; return; }
+
+    try{
+      const resp = await fetch(CUSTOMER_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action:'signup', phone, name, surname, address, email, password })
+      });
+      const j = await resp.json();
+      if(j.status === 'success' || j.success === true){
+        // Auto-login store
+        localStorage.setItem('customerPhone', phone);
+        localStorage.setItem('customerName', name);
+        localStorage.setItem('customerSurname', surname);
+        localStorage.setItem('customerAddress', address);
+        localStorage.setItem('customerEmail', email);
+        closeModal();
+        renderCart();
+        alert('Signup successful');
+      } else {
+        msg.innerText = j.message || j.msg || 'Signup failed';
+      }
+    } catch(err){
+      console.error(err);
+      msg.innerText = 'Network error';
+    }
+  });
+}
+
+function showForgotModal(){
+  openModal(`
+    <h3>Forgot Password</h3>
+    <div class="form-row"><input id="f_phone" placeholder="Phone (10 digits)"></div>
+    <div class="form-row"><input id="f_email" placeholder="Email"></div>
+    <div style="text-align:right;"><button id="f_btn" style="background:#f39c12;color:#fff;padding:8px;border-radius:6px;border:none;">Send New Password</button></div>
+    <div id="f_msg" class="alert"></div>
+  `);
+  document.getElementById('f_btn').addEventListener('click', async ()=>{
+    const phone = document.getElementById('f_phone').value.trim();
+    const email = document.getElementById('f_email').value.trim();
+    const msg = document.getElementById('f_msg');
+    msg.innerText = '';
+    if(!/^\d{10}$/.test(phone)){ msg.innerText='Phone must be 10 digits'; return; }
+    if(!email){ msg.innerText='Email required'; return; }
+
+    try{
+      const resp = await fetch(CUSTOMER_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action:'forgotPassword', phone, email })
+      });
+      const j = await resp.json();
+      msg.innerText = j.message || j.msg || (j.status==='success' ? 'Check your email' : 'Failed');
+    } catch(err){
+      console.error(err);
+      msg.innerText = 'Network error';
+    }
+  });
+}
+
+/* ================== CONFIRM ORDER ================== */
+document.getElementById('confirmOrderBtn').addEventListener('click', async ()=>{
+  if(cart.length === 0){ alert('Cart is empty'); return; }
+
+  // ensure logged in
+  const phone = localStorage.getItem('customerPhone');
+  if(!phone){
+    // force login/signup
+    showLoginModal();
+    return;
+  }
+
+  const name = localStorage.getItem('customerName') || '';
+  const surname = localStorage.getItem('customerSurname') || '';
+  const address = localStorage.getItem('customerAddress') || '';
+  const email = localStorage.getItem('customerEmail') || '';
+
+  // validate customer info
+  if(!/^\d{10}$/.test(phone) || !name || !surname || !address || !email){
+    alert('Please complete your account details (Sign Up / Login).');
+    return;
+  }
+
+  // build order payload
+  const productsStr = cart.map(i => `${i.Name} x ${i.qty} = $${i.Price}`).join('; ');
+  const total = cart.reduce((sum,i)=> sum + parseFloat(i.Price || 0) * i.qty, 0).toFixed(2);
+
+  const payload = {
+    action: 'placeOrder',
+    customerName: name,
+    customerSurname: surname,
+    customerPhone: phone,
+    customerAddress: address,
+    customerEmail: email,
+    products: productsStr,
+    total
+  };
+
+  try{
+    const resp = await fetch(ORDERS_WEB_APP_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const j = await resp.json();
+    if(j.status === 'success' || j.success === true){
+      alert('✅ Order confirmed!');
+      cart = []; renderCart(); showPage('catalog'); fetchOrders();
+    } else {
+      alert('Failed to place order: ' + (j.message || j.msg || 'Unknown error'));
+    }
+  } catch(err){
+    console.error(err);
+    alert('Network error while placing order');
+  }
 });
 
-// =================== FETCH ORDERS ===================
-function fetchOrders(){
+/* ================== FETCH ORDERS ================== */
+async function fetchOrders(){
   const container = document.getElementById('ordersContainer');
   container.innerHTML = 'Loading orders...';
-  fetch(ORDERS_WEB_APP_URL)
-    .then(res => res.json())
-    .then(data => {
-      if(!data || data.length===0){ container.innerHTML='No confirmed orders yet.'; return; }
-      container.innerHTML = data.map(order => `
-        <div class="order-card">
-          <div class="order-title">Customer: ${order['Customer Name'] || 'N/A'} ${order['Surname'] || ''}</div>
-          <div class="order-details">Phone: ${order['Phone'] || 'N/A'}</div>
-          <div class="order-details">Address: ${order['Address'] || 'N/A'}</div>
-          <div class="order-details">Products: ${order['Products'] || 'N/A'}</div>
-          <div class="order-details">Total: $${order['Total'] || '0.00'}</div>
-          <div class="order-details">Time: ${order['Timestamp'] || ''}</div>
-        </div>
-      `).join('');
-    })
-    .catch(err => { console.error(err); container.innerHTML='Failed to load orders.'; });
+  try{
+    const resp = await fetch(ORDERS_WEB_APP_URL);
+    const data = await resp.json();
+    if(!data || data.length === 0){ container.innerHTML = 'No confirmed orders yet.'; return; }
+    container.innerHTML = data.map(order => {
+      // try multiple header name variants for compatibility
+      const name = order['CustomerName'] || order['Customer Name'] || order['Name'] || order['CustomerName'] || order['customerName'] || '';
+      const surname = order['CustomerSurname'] || order['Customer Surname'] || order['Surname'] || order['customerSurname'] || '';
+      const phone = order['CustomerPhone'] || order['Customer Phone'] || order['Phone'] || order['customerPhone'] || '';
+      const address = order['CustomerAddress'] || order['Address'] || order['address'] || '';
+      const email = order['Email'] || order['customerEmail'] || '';
+      const products = order['Products'] || order['products'] || order['Product'] || '';
+      const total = order['Total'] || order['total'] || '';
+      const ts = order['Timestamp'] || order['Date'] || order['Time'] || order['timestamp'] || '';
+      return `<div class="order-card">
+        <div class="order-title">Customer: ${escapeHtml(name)} ${escapeHtml(surname)}</div>
+        <div class="order-details">Phone: ${escapeHtml(phone)}</div>
+        <div class="order-details">Email: ${escapeHtml(email)}</div>
+        <div class="order-details">Address: ${escapeHtml(address)}</div>
+        <div class="order-details">Products: ${escapeHtml(products)}</div>
+        <div class="order-details">Total: $${escapeHtml(total)}</div>
+        <div class="order-details">Time: ${escapeHtml(ts)}</div>
+      </div>`;
+    }).join('');
+  } catch(err){
+    console.error(err);
+    container.innerHTML = 'Failed to load orders.';
+  }
 }
-</script>
 
+/* ================== UTIL ================== */
+function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+
+/* ================== INIT ================== */
+renderCart();
+renderAccountArea();
+showPage('catalog');
+
+</script>
 </body>
 </html>
